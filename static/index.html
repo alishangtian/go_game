@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围棋对战</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 左侧游戏设置 -->
+        <div class="settings-panel">
+            <div class="config-panel">
+                <h2>游戏设置</h2>
+                <div>
+                    <label for="blackModelUrl">黑方模型URL：</label>
+                    <input type="text" id="blackModelUrl" value="http://10.234.20.35:81/v1/chat/completions">
+                </div>
+                <div>
+                    <label for="blackModelName">黑方模型名称：</label>
+                    <input type="text" id="blackModelName" value="DeepSeek-R1-Distill-Qwen-32B">
+                </div>
+                <div>
+                    <label for="whiteModelUrl">白方模型URL：</label>
+                    <input type="text" id="whiteModelUrl" value="http://10.234.20.35:81/v1/chat/completions">
+                </div>
+                <div>
+                    <label for="whiteModelName">白方模型名称：</label>
+                    <input type="text" id="whiteModelName" value="DeepSeek-R1-Distill-Qwen-32B">
+                </div>
+                <button onclick="startNewGame()">开始新游戏</button>
+            </div>
+        </div>
+
+        <!-- 中间棋盘 -->
+        <div class="board-panel">
+            <div class="board-container">
+                <div id="goBoard">
+                    <div id="grid" class="grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧游戏信息和聊天记录 -->
+        <div class="info-panel">
+            <div class="game-info">
+                <h2>游戏信息</h2>
+                <div>游戏ID：<span id="gameId">-</span></div>
+                <div class="game-status">
+                    当前回合：<div id="playerIndicator" class="player-indicator"></div>
+                    <span id="currentPlayer">-</span>
+                </div>
+                <div id="thinkingIndicator" class="thinking-indicator">
+                    AI正在思考中...
+                </div>
+            </div>
+            <div class="thinking-history">
+                <h3>思考历史</h3>
+                <div id="thinkingHistory"></div>
+            </div>
+            <div class="chat-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="输入消息...">
+                    <button onclick="sendMessage()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
