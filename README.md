@@ -1,10 +1,8 @@
 # go_game
 # start
 ```python
-python main.py
-```
+uvicorn main:app --reload
 
-```log
 INFO:     Started server process [2648]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
