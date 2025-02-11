@@ -7,7 +7,7 @@ import uuid
 import asyncio
 import json
 from ai_player import AIPlayer
-from logger_config import setup_logger
+from logger_config import setup_logger, setup_move_logger
 
 # 设置日志记录器
 logger = setup_logger()
@@ -19,19 +19,38 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 BOARD_SIZE = 19
 
 class GameState:
-    def __init__(self, black_model_url=None, black_model_name=None, white_model_url=None, white_model_name=None, first_player=1):
+    def __init__(self, black_model_type=None, black_model_url=None, black_model_name=None, 
+                 white_model_type=None, white_model_url=None, white_model_name=None, 
+                 first_player=1, black_bearer_token=None, white_bearer_token=None):
         self.board = [[0 for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
         self.current_player = first_player  # 1代表黑棋，2代表白棋
         self.game_id = str(uuid.uuid4())
         self.moves_history = []
         self.chat_history = []
+        self.black_model_type = black_model_type
+        self.white_model_type = white_model_type
         self.black_model_url = black_model_url
         self.white_model_url = white_model_url
-        self.black_ai = AIPlayer(api_url=black_model_url, model_name=black_model_name) if black_model_url else None
-        self.white_ai = AIPlayer(api_url=white_model_url, model_name=white_model_name) if white_model_url else None
+        
+        # 初始化AI玩家
+        self.black_ai = AIPlayer(
+            model_type=black_model_type,
+            api_url=black_model_url,
+            model_name=black_model_name,
+            bearer_token=black_bearer_token
+        ) if black_model_type else None
+        
+        self.white_ai = AIPlayer(
+            model_type=white_model_type,
+            api_url=white_model_url,
+            model_name=white_model_name,
+            bearer_token=white_bearer_token
+        ) if white_model_type else None
         self.last_move: Optional[Tuple[int, int, str]] = None  # (x, y, reasoning)
         self.current_thinking = ""  # 当前棋手的思考过程
-        logger.info(f"创建新游戏 {self.game_id}, 黑方模型: {black_model_url}, 白方模型: {white_model_url}, 先手: {'黑方' if first_player == 1 else '白方'}")
+        # 设置两个日志记录器
+        logger.info(f"创建新游戏 {self.game_id}, 黑方模型地址: {black_model_url}, 白方模型地址: {white_model_url}, 先手: {'黑方' if first_player == 1 else '白方'}")
+        self.moves_logger = setup_move_logger(self.game_id)
 
     def is_valid_move(self, x: int, y: int) -> bool:
         if not (0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE):
@@ -47,7 +66,11 @@ class GameState:
         
         self.board[y][x] = self.current_player
         self.moves_history.append((x, y, self.current_player))
+        # 记录到主日志
         logger.info(f"游戏 {self.game_id}: {'黑方' if self.current_player == 1 else '白方'} 在 ({x}, {y}) 落子")
+        # 记录到移动日志，只记录move字段
+        self.moves_logger.info(f"Move: ({x}, {y})")
+        
         self.current_player = 3 - self.current_player  # 切换玩家（1->2或2->1）
         self.current_thinking = ""  # 清空上个棋手的思考过程
         return True
@@ -76,11 +99,15 @@ class GameResponse(BaseModel):
 
 class GameConfig(BaseModel):
     player_type: str = "ai"  # "ai" 或 "human"
+    black_model_type: Optional[str] = None  # "deepseek", "openai", 或 "compatible"
     black_model_url: Optional[str] = None
     black_model_name: Optional[str] = None
+    white_model_type: Optional[str] = None  # "deepseek", "openai", 或 "compatible"
     white_model_url: Optional[str] = None
     white_model_name: Optional[str] = None
     first_player: Optional[int] = 1  # 1代表黑棋，2代表白棋
+    black_bearer_token: Optional[str] = None  # 黑方Bearer Token认证
+    white_bearer_token: Optional[str] = None  # 白方Bearer Token认证
 
 @app.post("/start_game")
 async def start_game(config: GameConfig, background_tasks: BackgroundTasks):
@@ -89,11 +116,15 @@ async def start_game(config: GameConfig, background_tasks: BackgroundTasks):
     """
     logger.info(f"开始新游戏，配置: {config.dict()}")
     game = GameState(
+        black_model_type=config.black_model_type,
         black_model_url=config.black_model_url,
         black_model_name=config.black_model_name,
+        white_model_type=config.white_model_type,
         white_model_url=config.white_model_url,
         white_model_name=config.white_model_name,
-        first_player=config.first_player
+        first_player=config.first_player,
+        black_bearer_token=config.black_bearer_token,
+        white_bearer_token=config.white_bearer_token
     )
     games[game.game_id] = game
     
@@ -138,7 +169,7 @@ async def ai_move(game_id: str):
         await broadcast_message(game_id, message)
     
     # 获取AI的移动
-    x, y, reasoning = await current_ai.get_move(
+    x, y, reasoning, elapsed_time = await current_ai.get_move(
         game.get_board_state(),
         game.get_current_player(),
         game.moves_history,
@@ -150,8 +181,12 @@ async def ai_move(game_id: str):
         current_player = game.current_player
         
         game.make_move(x, y)
-        game.last_move = (x, y, reasoning)
+        game.last_move = (x, y, reasoning, elapsed_time)
         game.current_thinking = reasoning
+        
+        # 记录AI的思考过程到moves日志，只记录reason字段
+        if reasoning:
+            game.moves_logger.info(f"Reason: {reasoning}")
         
         # 将思考过程添加到聊天历史
         chat_data = {

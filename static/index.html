@@ -13,20 +13,46 @@
             <div class="config-panel">
                 <h2>游戏设置</h2>
                 <div>
+                    <label for="blackModelType">黑方模型类型：</label>
+                    <select id="blackModelType">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="compatible">Compatible API</option>
+                    </select>
+                </div>
+                <div id="blackModelUrlDiv" style="display: none;">
                     <label for="blackModelUrl">黑方模型URL：</label>
-                    <input type="text" id="blackModelUrl" value="http://ip:port/v1/chat/completions">
+                    <input type="text" id="blackModelUrl" value="">
                 </div>
-                <div>
+                <div id="blackModelNameDiv">
                     <label for="blackModelName">黑方模型名称：</label>
-                    <input type="text" id="blackModelName" value="DeepSeek-R1-Distill-Qwen-32B">
+                    <input type="text" id="blackModelName" value="">
+                </div>
+                <div id="blackBearerTokenDiv">
+                    <label for="blackBearerToken">黑方Bearer Token：</label>
+                    <input type="password" id="blackBearerToken" placeholder="输入黑方访问令牌" autocomplete="off" spellcheck="false">
+                    <!-- <small style="color: #666; display: block; margin-top: 4px; font-size: 12px;">用于黑方API认证的访问令牌</small> -->
                 </div>
                 <div>
+                    <label for="whiteModelType">白方模型类型：</label>
+                    <select id="whiteModelType">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="compatible">Compatible API</option>
+                    </select>
+                </div>
+                <div id="whiteModelUrlDiv" style="display: none;">
                     <label for="whiteModelUrl">白方模型URL：</label>
-                    <input type="text" id="whiteModelUrl" value="http://ip:port/v1/chat/completions">
+                    <input type="text" id="whiteModelUrl" value="">
                 </div>
-                <div>
+                <div id="whiteModelNameDiv">
                     <label for="whiteModelName">白方模型名称：</label>
-                    <input type="text" id="whiteModelName" value="DeepSeek-R1-Distill-Qwen-32B">
+                    <input type="text" id="whiteModelName" value="">
+                </div>
+                <div id="whiteBearerTokenDiv">
+                    <label for="whiteBearerToken">白方Bearer Token：</label>
+                    <input type="password" id="whiteBearerToken" placeholder="输入白方访问令牌" autocomplete="off" spellcheck="false">
+                    <!-- <small style="color: #666; display: block; margin-top: 4px; font-size: 12px;">用于白方API认证的访问令牌</small> -->
                 </div>
                 <button onclick="startNewGame()">开始新游戏</button>
             </div>

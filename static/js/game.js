@@ -162,6 +162,7 @@ function updateAIReasoning(last_move,userText) {
     const thinkingHistoryElement = document.getElementById('thinkingHistory');
     reasoning = last_move[2];
     cordinate = [last_move[0],last_move[1]];
+    elapsed_time = last_move[3];
     if (!reasoning) {
         return;
     }
@@ -176,7 +177,11 @@ function updateAIReasoning(last_move,userText) {
                     <span class="player">${userText}思考过程</span>
                 </div>
                 <div class="thinking-content">
-                    <div class="content-body">落子坐标：[${cordinate}]：${reasoning}</div>
+                    <div class="content-body">
+                        <div class="move-info">落子坐标：[${cordinate}]</div>
+                        <div class="time-info">耗时：${elapsed_time}秒</div>
+                        <div class="reasoning-info">${reasoning}</div>
+                    </div>
                 </div>
             </div>
         `;
@@ -212,12 +217,45 @@ function sendMessage() {
     }
 }
 
+// 更新模型输入框显示
+function updateModelInputs(side) {
+    const modelType = document.getElementById(`${side}ModelType`).value;
+    const urlDiv = document.getElementById(`${side}ModelUrlDiv`);
+    const modelNameDiv = document.getElementById(`${side}ModelNameDiv`);
+    const bearerTokenDiv = document.getElementById(`${side}BearerTokenDiv`);
+    
+    // DeepSeek和OpenAI只需要model和token
+    if (modelType === 'deepseek' || modelType === 'openai') {
+        urlDiv.style.display = 'none';
+        modelNameDiv.style.display = 'block';
+        bearerTokenDiv.style.display = 'block';
+        // 根据类型设置默认的模型名称
+        if (modelType === 'deepseek') {
+            document.getElementById(`${side}ModelName`).value = 'deepseek-chat';
+        } else if (modelType === 'openai') {
+            document.getElementById(`${side}ModelName`).value = 'gpt-4o';
+        }
+    } else {
+        // Compatible API需要所有字段
+        urlDiv.style.display = 'block';
+        modelNameDiv.style.display = 'block';
+        bearerTokenDiv.style.display = 'block';
+        document.getElementById(`${side}ModelUrl`).value = '';
+        document.getElementById(`${side}ModelName`).value = '';
+    }
+}
+
 // 开始新游戏
 function startNewGame() {
+    const blackModelType = document.getElementById('blackModelType').value;
     const blackModelUrl = document.getElementById('blackModelUrl').value;
     const blackModelName = document.getElementById('blackModelName').value;
+    const blackBearerToken = document.getElementById('blackBearerToken').value;
+    
+    const whiteModelType = document.getElementById('whiteModelType').value;
     const whiteModelUrl = document.getElementById('whiteModelUrl').value;
     const whiteModelName = document.getElementById('whiteModelName').value;
+    const whiteBearerToken = document.getElementById('whiteBearerToken').value;
     
     fetch('/start_game', {
         method: 'POST',
@@ -226,10 +264,14 @@ function startNewGame() {
         },
         body: JSON.stringify({
             player_type: "ai",
+            black_model_type: blackModelType,
             black_model_url: blackModelUrl,
             black_model_name: blackModelName,
+            black_bearer_token: blackBearerToken,
+            white_model_type: whiteModelType,
             white_model_url: whiteModelUrl,
             white_model_name: whiteModelName,
+            white_bearer_token: whiteBearerToken,
             first_player: 1
         })
     })
@@ -247,11 +289,23 @@ function startNewGame() {
     });
 }
 
-// 监听回车键发送消息
+// 监听回车键发送消息并初始化模型输入框
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('messageInput').addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             sendMessage();
         }
     });
+
+    // 为模型类型选择添加事件监听器
+    document.getElementById('blackModelType').addEventListener('change', function() {
+        updateModelInputs('black');
+    });
+    document.getElementById('whiteModelType').addEventListener('change', function() {
+        updateModelInputs('white');
+    });
+
+    // 初始化黑白双方的模型输入框显示状态
+    updateModelInputs('black');
+    updateModelInputs('white');
 });

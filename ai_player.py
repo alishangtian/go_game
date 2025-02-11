@@ -53,13 +53,34 @@ def format_chat_history(chat_history: Optional[List[Dict]]) -> str:
     return formatted
 
 class AIPlayer:
-    def __init__(self, api_url="http://ip:port/v1/chat/completions", model_name="DeepSeek-R1"):
-        self.api_url = api_url
-        self.model_name = model_name
+    def __init__(self, model_type="compatible", api_url=None, model_name=None, bearer_token=None):
+        self.model_type = model_type
+        self.model_name = model_name or self._get_default_model_name()
+        self.api_url = api_url or self._get_default_api_url()
         self.headers = {
             'Content-Type': 'application/json'
         }
-        logger.info(f"初始化AI玩家，API地址: {api_url}")
+        if bearer_token:
+            self.headers['Authorization'] = f'Bearer {bearer_token}'
+        logger.info(f"初始化AI玩家，类型: {model_type}, API地址: {self.api_url}, MODEL名称: {self.model_name}")
+
+    def _get_default_model_name(self):
+        """根据模型类型获取默认模型名称"""
+        model_defaults = {
+            "deepseek": "deepseek-chat",
+            "openai": "gpt-4o",
+            "compatible": "DeepSeek-R1"
+        }
+        return model_defaults.get(self.model_type, "DeepSeek-R1")
+
+    def _get_default_api_url(self):
+        """根据模型类型获取默认API URL"""
+        api_defaults = {
+            "deepseek": "https://api.deepseek.com/v1/chat/completions",
+            "openai": "https://api.openai.com/v1/chat/completions",
+            "compatible": "http://ip:port/v1/chat/completions"
+        }
+        return api_defaults.get(self.model_type, "http://ip:port/v1/chat/completions")
 
     def _format_board(self, board):
         """将棋盘转换为字符串表示"""
@@ -148,35 +169,52 @@ class AIPlayer:
 """
         return prompt
 
+    def _prepare_request_data(self, prompt):
+        """根据模型类型准备请求数据"""
+        base_data = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.6,
+            "top_p": 1
+        }
+
+        if self.model_type == "deepseek":
+            base_data.update({
+                "max_tokens": 8192,
+                "stop": None,
+                "stream": False
+            })
+        elif self.model_type == "openai":
+            base_data.update({
+                "max_tokens": 4096,
+                "response_format": {"type": "text"}
+            })
+        else:  # compatible
+            base_data.update({
+                "frequency_penalty": 0,
+                "max_tokens": 8192,
+                "presence_penalty": 0,
+                "response_format": {"type": "text"},
+                "stop": None,
+                "stream": False,
+                "stream_options": None,
+                "tools": None,
+                "tool_choice": "none",
+                "logprobs": False,
+                "top_logprobs": None
+            })
+        
+        return base_data
+
     async def get_move(self, board, current_player, moves_history, chat_history=None):
         """获取AI的下一步移动"""
+        import time
+        start_time = time.time()
+        
         prompt = self._create_prompt(board, current_player, moves_history, chat_history)
         logger.info(f"AI提示词: {prompt}")
         
-        request_data = {
-            "model": self.model_name,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "frequency_penalty": 0,
-            "max_tokens": 8192,
-            "presence_penalty": 0,
-            "response_format": {
-                "type": "text"
-            },
-            "stop": None,
-            "stream": False,
-            "stream_options": None,
-            "temperature": 1,
-            "top_p": 1,
-            "tools": None,
-            "tool_choice": "none",
-            "logprobs": False,
-            "top_logprobs": None
-        }
+        request_data = self._prepare_request_data(prompt)
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -210,8 +248,10 @@ class AIPlayer:
                         if board[y][x] != 0:
                             raise ValueError("该位置已被占用")
                         
-                        logger.info(f"AI决定在 ({x}, {y}) 落子，原因: {reasoning}")
-                        return x, y, reasoning
+                        end_time = time.time()
+                        elapsed_time = round(end_time - start_time, 2)
+                        logger.info(f"AI决定在 ({x}, {y}) 落子，原因: {reasoning}，耗时: {elapsed_time}秒")
+                        return x, y, reasoning, elapsed_time
                         
                     except json.JSONDecodeError:
                         logger.error("AI返回的响应格式无效")
@@ -231,5 +271,7 @@ class AIPlayer:
             if empty_positions:
                 x, y = random.choice(empty_positions)
                 logger.warning(f"使用随机移动: ({x}, {y})")
-                return x, y, "抱歉，我遇到了一些问题，所以这一手我选择了一个随机的位置"
-            return None, None, "我发现已经没有可以落子的位置了"
+                end_time = time.time()
+                elapsed_time = round(end_time - start_time, 2)
+                return x, y, "抱歉，我遇到了一些问题，所以这一手我选择了一个随机的位置", elapsed_time
+            return None, None, "我发现已经没有可以落子的位置了", 0

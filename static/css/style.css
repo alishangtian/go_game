@@ -102,12 +102,32 @@ body {
     border: 1px solid #dee2e6;
 }
 
-.config-panel input[type="text"] {
+.config-panel input[type="text"],
+.config-panel input[type="password"] {
     width: 100%;
     padding: 8px;
     margin: 5px 0;
     border: 1px solid #ddd;
     border-radius: 4px;
+    transition: border-color 0.3s ease;
+}
+
+.config-panel input[type="text"]:hover,
+.config-panel input[type="password"]:hover {
+    border-color: #4CAF50;
+}
+
+.config-panel input[type="text"]:focus,
+.config-panel input[type="password"]:focus {
+    border-color: #2196F3;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.config-panel input[type="password"] {
+    letter-spacing: 2px;
+    font-family: monospace;
+    background-color: #f8f9fa;
 }
 
 .config-panel button {
@@ -338,4 +358,26 @@ body {
     color: #424242;
     line-height: 1.5;
     font-size: 0.95em;
+}
+
+.thinking-content .move-info {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #2196F3;
+}
+
+.thinking-content .time-info {
+    color: #757575;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    padding-left: 10px;
+    border-left: 3px solid #4CAF50;
+}
+
+.thinking-content .reasoning-info {
+    color: #424242;
+    line-height: 1.6;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
