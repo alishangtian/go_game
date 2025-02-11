@@ -1,8 +1,7 @@
-<center>
-# Go Game
-</center>
-  Go Game Driven by Large Language Models, It allows two models to compete against each other and automatically place the pieces.
-# start
+| Go Game |
+|:-------------------:|
+Go Game Driven by Large Language Models, It allows two models to compete against each other and automatically place the pieces.
+## start
 ```python
 uvicorn main:app --reload
 
